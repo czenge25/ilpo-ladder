@@ -1,53 +1,29 @@
 # ILPO Ladder
 
-Pool Elo rankings with a React/Vite frontend for GitHub Pages and a Supabase database/auth backend. Start with **[SETUP.md](SETUP.md)**.
+Pool Elo rankings with a React/Vite frontend on GitHub Pages and a Supabase backend.
 
-## Included
+## Access
 
-- Starting Elo of 1000, K-factor 32; every confirmed game counts immediately.
-- Google sign-in and an admin-managed member allowlist.
-- Server-enforced admin permissions, member activation/deactivation, and opponent confirmation.
-- Match disputes, admin resolution, voiding, and automatic historical rating recalculation.
-- Player ratings, win/loss records, rating history, and head-to-head records.
-- Responsive layout, 30-second refresh, and GitHub Pages project-path support.
-- Database migration, automated PostgreSQL tests, and GitHub Actions deployment.
-- Optional import script for the existing ChatGPT Sites data.
+- Members enter their first and last name. Only an exact active roster match is accepted; case and extra whitespace are ignored.
+- This is a roster check, not proof of identity: anyone who knows a listed name can use that member account.
+- Name sessions last 30 days and are stored in the browser. Supabase stores only hashed session tokens. Signing out revokes that token; deactivating a member revokes all of their name sessions.
+- Administrators sign in separately with a Supabase Auth email and password. Admin rights are assigned explicitly in `private.admins`; a member name never grants admin rights.
+- Members record their own games and confirm or dispute their opponents' submissions. Only admins can add/deactivate members, resolve disputes, or void games. Voided games stay in the audit history and ratings are recalculated.
 
-## Local use
+## Deploy
 
-Node.js 22.13 or later:
+Follow [SETUP.md](SETUP.md). Google OAuth and a separate email service are not needed for member access.
 
 ```sh
 npm ci
-cp .env.example .env.local
-# Fill in your own Supabase project URL and publishable key.
+# Create .env.local using your Supabase URL and publishable key.
 npm run dev
+npm test
+npm run build
 ```
 
-Run `npm test` for PostgreSQL permission/rating checks, and `npm run build` for a type-checked static build in `dist/`.
+The frontend calls PostgreSQL RPCs. Private tables have RLS enabled with no direct browser grants. The name-login RPC validates the roster; member RPCs validate a random expiring session token and derive the member ID server-side. They never trust an admin flag or member ID supplied by the browser. Admin RPCs check the Supabase Auth account against `private.admins`. Private helper functions are not callable by browser roles. Public SECURITY DEFINER RPCs are intentional and enforce their own authorization.
 
-## Architecture
+Initial database schema: `supabase/001_schema.sql`. Name-access update: `supabase/migrations/*_roster_name_access.sql`. Apply the update to an existing database once; do not rerun the initial schema over live tables. GitHub deployments build the frontend only and do not apply database migrations.
 
-The browser uses the official Supabase JS client with Google OAuth + PKCE. It calls two PostgreSQL RPCs: `get_house()` and `house_action(params)`. Those functions enforce membership and admin access on every request. Private tables have RLS enabled and no direct browser grants. Ratings are calculated in PostgreSQL, never accepted from browser input. Mutations run transactionally under an advisory lock, with confirmation order recorded explicitly and submission retries deduplicated by game ID.
-
-Admin status is assigned explicitly using an Auth user UUID in the database. The first person to visit cannot claim admin status. An account must match an active member email or be an administrator to read any ladder data.
-
-The frontend source can be public. Member emails, match history, tokens, and admin privileges are not bundled into it. Only the Supabase URL and **publishable** key belong in frontend configuration; never add a service-role key or Google client secret there.
-
-## Current status
-
-This is a converted, tested deployment package, not a newly hosted site. It has no connection to a live Supabase project until you configure one. Your existing ChatGPT Sites deployment has not been changed. Existing members and matches have not been copied automatically; see the optional migration instructions.
-
-## Files
-
-- `src/` — application and Supabase client
-- `supabase/001_schema.sql` — schema, permissions, rating logic, RPCs
-- `supabase/set-admin.sql` — explicit admin assignment template
-- `.github/workflows/deploy.yml` — build/test/deploy to Pages
-- `scripts/import-sites.mjs` — optional existing-data conversion
-- `tests/database.test.mjs` — PostgreSQL tests using PGlite
-- `SETUP.md` — account configuration and deployment guide
-
-## Verification limits
-
-Automated tests run the actual SQL functions in PGlite (PostgreSQL compiled to WebAssembly), with mock Supabase Auth tables and roles. They verify membership, permission enforcement, confirmation rules, idempotency, Elo updates, and void/replay behavior. They do not substitute for a live Google OAuth round trip or multi-connection concurrency/load testing. Before sharing the live site, complete the two-account checks in SETUP.md.
+Tests run the real SQL in PGlite, including name normalization, absent/inactive names, invalid/expired/revoked sessions, admin boundaries, opponent confirmation, duplicate submissions, and Elo recalculation. Admin passwords are handled by Supabase Auth and are never stored in application tables or source code.
