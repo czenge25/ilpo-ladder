@@ -34,7 +34,7 @@ See [RATE_LIMITS.md](RATE_LIMITS.md) for server quotas, the new migration, activ
 
 ## Player profiles and movement
 
-Profiles show the signed-in member’s wins and losses against the selected player, plus that player’s Elo chart. Recorded games count immediately; disputed and voided results are excluded. Charts follow rating order and include the initial 1,000 rating.
+Profiles load on demand and show the signed-in member’s wins and losses against the selected player, plus that player’s Elo chart. The default chart shows the last 50 games from their actual preceding Elo; All time loads the complete chart. Recorded games count immediately; disputed and voided results are excluded. Charts follow rating order and include the initial 1,000 rating.
 
 Leaderboard movement compares current rank with rank 24 hours, 7 days, or 30 days ago. Historical Elo is reconstructed using rating order and audited result/dispute/void/unvoid events. Comparisons use the current active roster; players who joined after the cutoff display New. Imported matches without an audit trail use their original rating timestamp as the historical baseline.
 
@@ -42,4 +42,16 @@ Leaderboard movement compares current rank with rank 24 hours, 7 days, or 30 day
 
 The leaderboard shows ten active players per page, preserving their overall rank numbers and movement values across pages. Recent matches appear above the Rating System box. Match history appears before disputed and voided results on Matches and in admin result management.
 
-The `match_history` RPC returns ten recorded matches per page, newest first. It validates member sessions or administrator authentication and shares the existing read quotas. Ladder reads include three recent recorded results, disputed/voided results, total counts, and aggregate head-to-head stats. Profiles retain complete rating charts and head-to-head records; player chart histories are still included in ladder data.
+The `match_history` RPC returns ten recorded matches per page, newest first. It validates member sessions or administrator authentication and shares the existing read quotas. Ladder reads include three recent recorded results, disputed/voided results, total counts, and aggregate head-to-head stats. The new lightweight ladder summary omits all player chart histories and global matchup details. Each profile fetches its own complete head-to-head totals, recent chart, and ten initial results; older result pages are fetched separately.
+
+## Lazy player history branch
+
+On `lazy-player-history`, the frontend uses `ladder_summary`, `player_profile`, and `player_results`. Existing `get_house`/`member_house` endpoints remain unchanged for compatibility with main. Profiles, chart ranges, and result pages share a 64-entry memory cache keyed by signed-in identity and the ladder audit revision. Game changes update that revision, invalidating cached data after the next ladder refresh; sign-out and session changes clear the cache. Failed requests can retry, and stale responses cannot replace another open player.
+
+Ladder polling stops when the browser tab is hidden and refreshes immediately on return. Open match/profile views also pause their automatic requests while hidden. Ordinary unchanged ladder refreshes do not refetch the current match-history page.
+
+### Activation
+
+This is a branch-only change. Do not deploy its frontend until `20261119191316_lazy_player_profiles.sql` has been applied, after all earlier migrations. The migration is additive and has not been applied to production during branch development. The existing GitHub/Supabase migration-ID mismatch must be reconciled before relying on the automatic database deployment integration. No migration-history repair or production reset is included here.
+
+Run `npm ci`, `npm test`, and `npm run build`. Tests cover the actual SQL, session/admin boundaries, shared read quotas, true preceding chart ratings, profile result pages, cache reuse/invalidation, failed/stale requests, hidden tabs, and sign-out.

@@ -18,3 +18,7 @@ export function changeHouse(params:Record<string,unknown>,token?:string){return 
 export async function signInAdmin(email:string,password:string){if(!supabase)throw Error('Supabase is not configured.');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw Error(error.message);clearMemberSession();return data.session;}
 
 export function loadMatchHistory(page:number,token?:string){return rpc('match_history',{session_token:token??null,page})}
+
+export function loadLadderSummary(token?:string){return rpc('ladder_summary',{session_token:token??null})}
+export function loadPlayerProfile(playerId:string,chartRange:'recent'|'all',token?:string){return rpc('player_profile',{player_id:playerId,session_token:token??null,chart_range:chartRange})}
+export function loadPlayerResults(playerId:string,page:number,token?:string){return rpc('player_results',{player_id:playerId,session_token:token??null,page})}
