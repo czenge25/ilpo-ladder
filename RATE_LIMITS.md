@@ -8,8 +8,8 @@ This branch adds server-side limits to the Supabase RPCs used by ILPO Ladder. Th
 | Set or change PIN while signed in | 6 attempts/minute and 30/hour, plus member mutation budget | Player ID |
 | Name sign-in, across all names | 300 attempts/minute | Whole application |
 | Record a game (members and admins) | 5 attempts/minute | Player ID or admin Auth user ID |
-| Member mutations, including confirmations and disputes | 30 attempts/minute | Player ID |
-| Admin mutations, including removing confirmed games | 60 attempts/minute | Admin Auth user ID |
+| Member mutations, including disputes and PIN changes | 30 attempts/minute | Player ID |
+| Admin mutations, including removing recorded games | 60 attempts/minute | Admin Auth user ID |
 | Fetch ladder data | 120 requests/minute | Player ID or admin Auth user ID |
 | Shared RPC flood ceiling, including invalid sessions | 1200 requests/minute | Whole application |
 
