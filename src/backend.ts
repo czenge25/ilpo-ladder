@@ -16,3 +16,5 @@ export async function signOutMember(token:string){try{await rpc('name_sign_out',
 export function loadHouse(token?:string){return token?rpc('member_house',{session_token:token}):rpc('get_house')}
 export function changeHouse(params:Record<string,unknown>,token?:string){return token?rpc('member_action',{session_token:token,params}):rpc('house_action',{params})}
 export async function signInAdmin(email:string,password:string){if(!supabase)throw Error('Supabase is not configured.');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw Error(error.message);clearMemberSession();return data.session;}
+
+export function loadMatchHistory(page:number,token?:string){return rpc('match_history',{session_token:token??null,page})}

@@ -4,13 +4,13 @@ test('automatic scoring, legacy migration, disputes, and original-order restorat
  const db=new PGlite({extensions:{pgcrypto}});try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;`);
  await db.exec(await readFile(new URL('../supabase/001_schema.sql',import.meta.url),'utf8'));
- const migrations=(await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort(),latest=migrations.pop();
- for(const f of migrations)await db.exec(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
+ const migrations=(await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort(),index=migrations.indexOf('20261119183304_automatic_match_ratings.sql'),remaining=migrations.slice(index);
+ for(const f of migrations.slice(0,index))await db.exec(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
  const [a,b,c]=(await db.query("insert into private.members(name,pin_hash) values('Alice Example',extensions.crypt('123456',extensions.gen_salt('bf',4))),('Bob Example',extensions.crypt('123456',extensions.gen_salt('bf',4))),('Casey Example',extensions.crypt('123456',extensions.gen_salt('bf',4))) returning id")).rows.map(p=>p.id);
  const admin='00000000-0000-0000-0000-000000000001';await db.query('insert into auth.users values($1,$2,now())',[admin,'admin@example.test']);await db.query('insert into private.admins values($1)',[admin]);
  const legacy=crypto.randomUUID(),legacyVoid=crypto.randomUUID(),legacyDispute=crypto.randomUUID();
  await db.query("insert into private.matches(id,winner,loser,status,created,status_before_void) values($1,$4,$5,'pending',now()-interval '2 days',null),($2,$4,$5,'void',now()-interval '2 days','pending'),($3,$4,$5,'disputed',now()-interval '2 days',null)",[legacy,legacyVoid,legacyDispute,a,b]);
- await db.exec(await readFile(new URL('../supabase/migrations/'+latest,import.meta.url),'utf8'));
+ for(const f of remaining)await db.exec(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
  const auth=async adminOn=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[adminOn?admin:'']);await db.exec(adminOn?'set role authenticated':'set role anon')};
  const unwrap=r=>{if(r?.error)throw Error(r.message||r.error);return r};
  const login=async first=>unwrap((await db.query("select public.member_login($1,'Example','123456',false) result",[first])).rows[0].result);
@@ -39,7 +39,7 @@ test('automatic scoring, legacy migration, disputes, and original-order restorat
   await auth(true);await action({action:'void',id:g});await action({action:'unvoid',id:g});await auth(false);assert.deepEqual((await house(alice.token)).players,baseline);await auth(true);await assert.rejects(()=>action({action:'unvoid',id:g}),/not voided/);await auth(false);
  });
  await t.test('unvoiding an old unrated result rates it automatically; legacy disputes can be restored',async()=>{
-  await auth(true);await action({action:'unvoid',id:legacyVoid});await action({action:'resolve',id:legacyDispute});await auth(false);const d=await house(alice.token);assert.equal(d.matches.find(m=>m.id===legacyVoid).status,'confirmed');assert.equal(d.matches.find(m=>m.id===legacyDispute).status,'confirmed');assert.equal(d.players.reduce((n,p)=>n+p.wins,0),4);
+  await auth(true);await action({action:'unvoid',id:legacyVoid});await action({action:'resolve',id:legacyDispute});await auth(false);const d=await house(alice.token),history=(await db.query('select public.match_history($1,1) result',[alice.token])).rows[0].result;assert.equal(history.matches.find(m=>m.id===legacyVoid).status,'confirmed');assert.equal(history.matches.find(m=>m.id===legacyDispute).status,'confirmed');assert.equal(d.players.reduce((n,p)=>n+p.wins,0),4);
  });
  }finally{await db.close()}
 });
