@@ -40,6 +40,6 @@ Leaderboard movement compares current rank with rank 24 hours, 7 days, or 30 day
 
 ## Ranking display and match pages
 
-The leaderboard initially shows the top five active players. Remaining rankings are collapsed by default, preserving their original rank numbers and movement values when expanded. Match history appears before disputed and voided results on Matches and in admin result management.
+The leaderboard shows ten active players per page, preserving their overall rank numbers and movement values across pages. Recent matches appear above the Rating System box. Match history appears before disputed and voided results on Matches and in admin result management.
 
 The `match_history` RPC returns ten recorded matches per page, newest first. It validates member sessions or administrator authentication and shares the existing read quotas. Ladder reads include three recent recorded results, disputed/voided results, total counts, and aggregate head-to-head stats. Profiles retain complete rating charts and head-to-head records; player chart histories are still included in ladder data.
