@@ -1,16 +1,16 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile,readdir} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';
+import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile,readdir} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 
 test('server RPC quotas persist failures, enforce identity budgets, and recover after expiry',async t=>{
- const db=new PGlite();const admin='00000000-0000-0000-0000-000000000001';
+ const db=new PGlite({extensions:{pgcrypto}});const admin='00000000-0000-0000-0000-000000000001';
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;`);
  await db.exec(await readFile(new URL('../supabase/001_schema.sql',import.meta.url),'utf8'));
  for(const file of (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  await db.query('insert into auth.users values($1,$2,now())',[admin,'admin@example.test']);await db.query('insert into private.admins values($1)',[admin]);
- await db.exec("insert into private.members(name) values ('Alice Example'),('Bob Example')");
+ await db.exec("insert into private.members(name,pin_hash) values ('Alice Example',extensions.crypt('123456',extensions.gen_salt('bf',4))),('Bob Example',extensions.crypt('123456',extensions.gen_salt('bf',4)))");
  const auth=async on=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[on?admin:'']);await db.exec(on?'set role authenticated':'set role anon')};
  const reset=async()=>{await db.exec('reset role;delete from private.rpc_rate_limits where scope is not null;');await auth(false)};
  const rpc=async(sql,args=[])=>(await db.query(`with response as materialized (select ${sql} result) select result,current_setting('response.status',true) as status,current_setting('response.headers',true) as headers from response`,args)).rows[0];
- const login=async(first='Alice',last='Example')=>rpc('public.name_sign_in($1,$2)',[first,last]);
+ const login=async(first='Alice',last='Example')=>rpc('public.member_login($1,$2,$3,false)',[first,last,'123456']);
  const action=async(token,params)=>rpc('public.member_action($1,$2::jsonb)',[token,JSON.stringify(params)]);
  const isLimited=r=>{assert.equal(r.result.code,'RATE_LIMITED');assert.equal(r.status,'429');assert.ok(r.result.retry_after_seconds>=1&&r.result.retry_after_seconds<=60);assert.equal(Number(JSON.parse(r.headers)[0]['Retry-After']),r.result.retry_after_seconds)};
  let a,b;

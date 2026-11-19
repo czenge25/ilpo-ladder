@@ -32,16 +32,16 @@ Use only accounts you intend to authorize in `private.admins`. A Supabase accoun
 
 ## Member use
 
-Members open the site, enter their roster first and last name, and sign in. Name matching ignores capitalization and repeated whitespace. Names must be unique among active members; use distinct full names if two people share a name. There is no public roster picker before sign-in.
+Members open the site and enter their roster first and last name. On the first sign-in, a clearly labeled setup screen asks them to create and confirm a six-digit PIN. Later sign-ins require that PIN. Name matching ignores capitalization and repeated whitespace. Names must be unique among active members; use distinct full names if two people share a name. There is no public roster picker before sign-in.
 
 Members can record games in which they played. The opponent or an admin confirms results before Elo changes. Only admins can void games or deactivate members. These actions retain the historical records.
 
-Name-based access does not verify who a person is. Someone who knows a listed name can act as that member; use a different sign-in model if that is unsuitable for your group.
+First-time PIN setup claims an unclaimed roster name; it does not independently verify identity. After setup, the correct PIN is required. Members can use Change PIN in the header with their current PIN. Admins can use Reset PIN in member management for forgotten PINs. Resetting signs out all member devices; changing a PIN keeps the changing browser signed in and revokes other sessions. Existing name-only sessions must complete PIN setup before recording or reviewing games.
 
 ## Checks
 
 - Unknown and inactive names must be rejected.
-- Valid names must open the leaderboard without a password.
+- An unclaimed valid name must show explicit PIN setup. A claimed name must require the correct six-digit PIN.
 - Name sessions must never show the Admin tab or allow admin RPC actions.
 - Admin email/password login must show the Admin tab.
 - Confirmed games update ratings once; voiding a game recalculates history.

@@ -8,7 +8,7 @@ test('voided matches restore status, original Elo order, and admin boundaries',a
  try{
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;`);
  await db.exec(await readFile(new URL('../supabase/001_schema.sql',import.meta.url),'utf8'));
- const migrations=(await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort();
+ const migrations=(await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')&&f<='20261119174545_restore_voided_matches.sql').sort();
  const newest=migrations.pop();
  for(const f of migrations)await db.exec(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
  const members=(await db.query("insert into private.members(name) values('Alice Example'),('Bob Example') returning id")).rows;

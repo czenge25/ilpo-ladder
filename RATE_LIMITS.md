@@ -1,10 +1,11 @@
 # API rate limits
 
-This branch adds server-side limits to the Supabase RPCs used by ILPO Ladder. They cannot be bypassed by changing frontend JavaScript. Limits use 60-second windows:
+This branch adds server-side limits to the Supabase RPCs used by ILPO Ladder. They cannot be bypassed by changing frontend JavaScript. Limits use fixed windows as shown:
 
 | Operation | Limit | Key |
 | --- | --- | --- |
-| Name sign-in (successful or failed) | 6 attempts/minute | Normalized entered name |
+| Name/PIN lookup and sign-in (successful or failed) | 6 attempts/minute and 30/hour | Normalized entered name |
+| Set or change PIN while signed in | 6 attempts/minute and 30/hour, plus member mutation budget | Player ID |
 | Name sign-in, across all names | 300 attempts/minute | Whole application |
 | Record a game (members and admins) | 5 attempts/minute | Player ID or admin Auth user ID |
 | Member mutations, including confirmations and disputes | 30 attempts/minute | Player ID |
@@ -18,7 +19,7 @@ A rejected request returns HTTP 429, a Retry-After header, and a message telling
 
 Counters are incremented atomically with INSERT ... ON CONFLICT. Business errors are caught inside a nested block after budget charging; they return an error response instead of aborting the entire transaction, so failed attempts still count. Private implementation functions and the quota table remain inaccessible to browser roles. The private implementations can only be called through the guarded public RPCs.
 
-The app does not trust a client-supplied IP header. Name sign-in has a per-name quota plus a shared ceiling, and other operations use authenticated account IDs or validated member sessions. This does not turn name-only access into identity verification: someone who knows another listed name can still sign in as that member, as requested.
+The app does not trust a client-supplied IP header. Name sign-in has a per-name quota plus a shared ceiling, and other operations use authenticated account IDs or validated member sessions. First-time setup claims an unclaimed name. Later sign-ins require a six-digit PIN; guessing and failed PIN changes consume their limits. A new device or session does not reset these budgets.
 
 Admin password authentication remains managed by Supabase Auth; this migration does not change provider settings. Logout is not part of the custom quota system.
 
@@ -31,3 +32,5 @@ No live database changes are made just by creating this branch.
 ## Verification
 
 Run `npm test` and `npm run build`. Database tests use PGlite to apply the actual migrations and verify failed-attempt persistence, reset after expiry, per-player/session behavior, submission limits for both members and admins, shared ceilings, Retry-After response settings, and private-function access restrictions. Real multi-connection load and PostgREST HTTP integration should be checked on a staging project before activation; the production database is not modified for branch-only testing.
+
+The PIN migration (`20261119181825_member_pins_and_rank_history.sql`) adds the hourly login budget and PIN-change budgets while preserving the existing game-submission, read, and mutation limits.

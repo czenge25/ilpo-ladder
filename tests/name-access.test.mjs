@@ -1,7 +1,7 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile,readdir} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';
+import {test} from 'node:test';import assert from 'node:assert/strict';import {readFile,readdir} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 
 test('roster name sessions preserve admin boundaries and correct Elo',async t=>{
- const db=new PGlite();const admin='00000000-0000-0000-0000-000000000001';
+ const db=new PGlite({extensions:{pgcrypto}});const admin='00000000-0000-0000-0000-000000000001';
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;`);
  await db.exec(await readFile(new URL('../supabase/001_schema.sql',import.meta.url),'utf8'));
  for(const migration of (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL('../supabase/migrations/'+migration,import.meta.url),'utf8'));
@@ -9,7 +9,7 @@ test('roster name sessions preserve admin boundaries and correct Elo',async t=>{
  const auth=async on=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[on?admin:'']);await db.exec(on?'set role authenticated':'set role anon')};
  const unwrap=r=>{if(r?.error)throw Error(r.message||r.error);return r};
  const action=async p=>unwrap((await db.query('select public.house_action($1::jsonb) result',[JSON.stringify(p)])).rows[0].result);
- const login=async(first,last)=>unwrap((await db.query('select public.name_sign_in($1,$2) result',[first,last])).rows[0].result);
+ const known=new Set();const login=async(first,last)=>{const key=String(first).trim().toLowerCase()+' '+String(last).trim().toLowerCase();const r=unwrap((await db.query('select public.member_login($1,$2,$3,$4) result',[first,last,'123456',!known.has(key)])).rows[0].result);known.add(key);return r};
  const house=async token=>unwrap((await db.query('select public.member_house($1) result',[token])).rows[0].result);
  const change=async(token,p)=>unwrap((await db.query('select public.member_action($1,$2::jsonb) result',[token,JSON.stringify(p)])).rows[0].result);
  let a,b,c;
