@@ -52,3 +52,7 @@ Name-based access does not verify who a person is. Someone who knows a listed na
 The existing import tool remains available: `node scripts/import-sites.mjs house-export.json import.sql`.
 
 Use a private admin export from the original ChatGPT Sites `/api/house` endpoint. Review and apply the generated SQL only to an empty roster/match database after the schema and name-access update. Old Auth IDs do not carry over as Supabase admins. Existing names must include first and last names and be unique among active members for name login to work. Keep exports and generated import SQL out of GitHub.
+
+## Request limits
+
+Apply all unapplied migrations in filename order, including `20261119014949_rpc_rate_limits.sql`, to activate the custom server-side limits. See RATE_LIMITS.md. Branch-only changes are not automatically applied to your live Supabase project.

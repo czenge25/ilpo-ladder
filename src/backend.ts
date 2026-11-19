@@ -7,7 +7,7 @@ export type MemberSession={token:string;id:string;name:string};
 const storageKey='ilpo-member-session-v1';
 export function readMemberSession():MemberSession|null{try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');return s&&typeof s.token==='string'&&s.token.length===64&&typeof s.id==='string'&&typeof s.name==='string'?s:null}catch{return null}}
 export function clearMemberSession(){localStorage.removeItem(storageKey)}
-async function rpc(name:string,args?:Record<string,unknown>){if(!supabase)throw Error('Supabase is not configured.');const {data,error}=await supabase.rpc(name,args);if(error)throw Error(error.message);return data;}
+async function rpc(name:string,args?:Record<string,unknown>){if(!supabase)throw Error('Supabase is not configured.');const {data,error}=await supabase.rpc(name,args);if(error)throw Object.assign(Error(error.message),{code:error.code});if(data?.error)throw Object.assign(Error(data.message||data.error),{code:data.code});return data;}
 export async function signInByName(firstName:string,lastName:string){const data:MemberSession=await rpc('name_sign_in',{first_name:firstName,last_name:lastName});localStorage.setItem(storageKey,JSON.stringify(data));return data;}
 export async function signOutMember(token:string){try{await rpc('name_sign_out',{session_token:token})}finally{clearMemberSession()}}
 export function loadHouse(token?:string){return token?rpc('member_house',{session_token:token}):rpc('get_house')}
