@@ -6,3 +6,11 @@
 .loginpanel{max-width:510px;margin:35px auto;padding:35px}.loginpanel>h2{font-size:23px;margin:20px 0 8px}.loginpanel>p{font-size:12px}.loginpanel label{display:block;font-size:12px;font-weight:600;margin-top:20px}.loginpanel input{display:block;width:100%;padding:12px;border:1px solid #dfe5d7;border-radius:5px;background:white;margin-top:8px;color:#40523b}.namefields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.switchlogin{display:block;margin:22px auto 0}.loginpanel .wide{margin-top:22px}@media(max-width:420px){.namefields{grid-template-columns:1fr;gap:0}.loginpanel{padding:25px}}
 
 .resultadmin{margin-bottom:25px}.disputed-list{margin:20px 0;border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}.resultadmin .disputed-list{margin:18px}.disputed-list summary{cursor:pointer;padding:16px 20px;font:600 12px Manrope,Arial;color:var(--ink)}.disputed-list[open] summary{border-bottom:1px solid var(--line)}.disputed-list summary:focus-visible{outline:3px solid #b5c86a;outline-offset:-3px}
+
+.match-menu-trigger{flex-shrink:0;display:grid;place-items:center;width:36px;height:36px;border:1px solid transparent;border-radius:6px;background:transparent;color:#777;cursor:pointer}
+.match-menu-trigger:hover,.match-menu-trigger[aria-expanded="true"]{background:#f2f3ef;color:#252c27;border-color:#e2e5df}
+.match-menu-trigger:focus-visible,.match-menu button:focus-visible{outline:2px solid #47765b;outline-offset:2px}
+.match-menu-trigger:disabled{opacity:.45;cursor:wait}
+.match-menu{position:fixed;z-index:1100;width:190px;box-sizing:border-box;padding:5px;background:#fff;border:1px solid #dfe4dc;border-radius:8px;box-shadow:0 8px 28px #18251b26}
+.match-menu button,.match-menu>span{display:block;width:100%;min-height:40px;padding:10px 12px;border:0;border-radius:4px;background:transparent;text-align:left;font:inherit;font-size:13px;color:#29352c}
+.match-menu button{cursor:pointer}.match-menu button:hover,.match-menu button:focus{background:#f0f3ed}.match-menu button.danger{color:#ab4033}.match-menu>span{color:#858b83}
