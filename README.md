@@ -50,8 +50,10 @@ On `lazy-player-history`, the frontend uses `ladder_summary`, `player_profile`, 
 
 Ladder polling stops when the browser tab is hidden and refreshes immediately on return. Open match/profile views also pause their automatic requests while hidden. Ordinary unchanged ladder refreshes do not refetch the current match-history page.
 
-### Activation
+### Deployment and migration tracking
 
-This is a branch-only change. Do not deploy its frontend until `20261119191316_lazy_player_profiles.sql` has been applied, after all earlier migrations. The migration is additive and has not been applied to production during branch development. The existing GitHub/Supabase migration-ID mismatch must be reconciled before relying on the automatic database deployment integration. No migration-history repair or production reset is included here.
+The initial schema is included as `20261027153948_initial_schema_baseline.sql`, before the feature migrations, so a fresh preview can replay the entire database setup. It skips initialization when the existing application schema is present. The original `001_schema.sql` remains a supported setup entry point.
+
+Production migration IDs have been reconciled with the committed filenames after checking that each recorded SQL hash matches its file. The lazy-profile migration is activated before the frontend deployment. Future migrations should be deployed with the CLI using the committed migration IDs; applying SQL through a tool that generates a new ID requires reconciling its history before GitHub deployment.
 
 Run `npm ci`, `npm test`, and `npm run build`. Tests cover the actual SQL, session/admin boundaries, shared read quotas, true preceding chart ratings, profile result pages, cache reuse/invalidation, failed/stale requests, hidden tabs, and sign-out.
