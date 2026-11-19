@@ -13,7 +13,7 @@ Never use a secret/service-role key in browser configuration. Push to `main` or 
 
 ## Database
 
-For a new project, run `supabase/001_schema.sql` in Supabase SQL Editor first, followed by `supabase/migrations/*_roster_name_access.sql`.
+For a new project, run `supabase/001_schema.sql` in Supabase SQL Editor first, followed by every file in `supabase/migrations/` in filename order.
 
 For the existing ILPO project, the initial schema already exists. Apply only unapplied updates. The name-access update is also applied during the assisted setup; inspect migration history before rerunning it.
 

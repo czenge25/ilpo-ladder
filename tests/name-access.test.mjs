@@ -6,6 +6,7 @@ test('roster name sessions preserve admin boundaries and correct Elo',async t=>{
  await db.exec(await readFile(new URL('../supabase/001_schema.sql',import.meta.url),'utf8'));
  const migration=(await readdir(new URL('../supabase/migrations/',import.meta.url))).find(f=>f.endsWith('_roster_name_access.sql'));
  await db.exec(await readFile(new URL('../supabase/migrations/'+migration,import.meta.url),'utf8'));
+ for(const fix of (await readdir(new URL('../supabase/migrations/',import.meta.url))).filter(f=>f.endsWith('_safe_elo_recalculation.sql')).sort())await db.exec(await readFile(new URL('../supabase/migrations/'+fix,import.meta.url),'utf8'));
  await db.query('insert into auth.users values($1,$2,now())',[admin,'admin@example.test']);await db.query('insert into private.admins values($1)',[admin]);
  const auth=async on=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[on?admin:'']);await db.exec(on?'set role authenticated':'set role anon')};
  const action=async p=>(await db.query('select public.house_action($1::jsonb) result',[JSON.stringify(p)])).rows[0].result;
@@ -20,6 +21,14 @@ test('roster name sessions preserve admin boundaries and correct Elo',async t=>{
  const g='10000000-0000-0000-0000-000000000001';
  await t.test('members submit own games, idempotent retry, opponent confirms',async()=>{const p={action:'submit',id:g,winner:a.id,loser:b.id};await change(a.token,p);await change(a.token,p);assert.equal((await house(a.token)).matches.length,1);await assert.rejects(()=>change(a.token,{action:'confirm',id:g}),/opponent/);await assert.rejects(()=>change(c.token,{action:'confirm',id:g}),/opponent/);await change(b.token,{action:'confirm',id:g});const d=await house(a.token);assert.equal(d.players.find(x=>x.id===a.id).rating,1016);assert.equal(d.players.find(x=>x.id===b.id).rating,984);await assert.rejects(()=>change(b.token,{action:'confirm',id:g}),/already/)});
  await t.test('only admin can void results; Elo replays correctly',async()=>{await assert.rejects(()=>change(a.token,{action:'void',id:g}),/Admin/);await auth(true);await action({action:'void',id:g});await auth(false);assert.ok((await house(a.token)).players.every(p=>p.rating===1000))});
+ await t.test('disputed game can be confirmed by admin and replayed after a historical void',async()=>{
+  const earlier='10000000-0000-0000-0000-000000000002',later='10000000-0000-0000-0000-000000000003';
+  await auth(false);await change(a.token,{action:'submit',id:earlier,winner:a.id,loser:b.id});await change(b.token,{action:'dispute',id:earlier});assert.equal((await house(a.token)).players.find(p=>p.id===a.id).rating,1000);
+  await auth(true);await action({action:'confirm',id:earlier});await auth(false);let d=await house(a.token);assert.equal(d.matches.find(m=>m.id===earlier).status,'confirmed');assert.equal(d.players.find(p=>p.id===a.id).rating,1016);
+  await change(a.token,{action:'submit',id:later,winner:a.id,loser:b.id});await change(b.token,{action:'confirm',id:later});d=await house(a.token);assert.ok(d.players.find(p=>p.id===a.id).rating>1016);
+  await auth(true);await action({action:'void',id:earlier});await auth(false);d=await house(a.token);assert.equal(d.players.find(p=>p.id===a.id).rating,1016);assert.equal(d.players.find(p=>p.id===b.id).rating,984);assert.equal(d.players.find(p=>p.id===a.id).wins,1);
+  await auth(true);await action({action:'void',id:later});await auth(false);assert.ok((await house(a.token)).players.every(p=>p.rating===1000));
+ });
  await t.test('deactivating removes access and invalidates old sessions permanently',async()=>{await auth(true);await action({action:'edit',id:c.id,active:false});await auth(false);await assert.rejects(()=>house(c.token),/session/);await assert.rejects(()=>login('Casey','Example'),/not on/);await auth(true);await action({action:'edit',id:c.id,active:true});await auth(false);await assert.rejects(()=>house(c.token),/session/);c=await login('Casey','Example')});
  await t.test('expired sessions and signed-out sessions cannot read or write',async()=>{await db.exec('reset role');await db.query("update private.member_sessions set expires_at=now()-interval '1 second' where member_id=$1",[c.id]);await auth(false);await assert.rejects(()=>house(c.token),/expired/);await db.query('select public.name_sign_out($1)',[a.token]);await assert.rejects(()=>house(a.token),/session/);await assert.rejects(()=>change(a.token,{action:'confirm',id:g}),/session/)});
  await db.close();

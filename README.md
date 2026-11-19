@@ -24,6 +24,6 @@ npm run build
 
 The frontend calls PostgreSQL RPCs. Private tables have RLS enabled with no direct browser grants. The name-login RPC validates the roster; member RPCs validate a random expiring session token and derive the member ID server-side. They never trust an admin flag or member ID supplied by the browser. Admin RPCs check the Supabase Auth account against `private.admins`. Private helper functions are not callable by browser roles. Public SECURITY DEFINER RPCs are intentional and enforce their own authorization.
 
-Initial database schema: `supabase/001_schema.sql`. Name-access update: `supabase/migrations/*_roster_name_access.sql`. Apply the update to an existing database once; do not rerun the initial schema over live tables. GitHub deployments build the frontend only and do not apply database migrations.
+Initial database schema: `supabase/001_schema.sql`. Database updates: `supabase/migrations/*.sql`, applied once each in filename order. The Elo replay update includes explicit predicates required by the API safe-update guard. Apply only unapplied updates to an existing database; do not rerun the initial schema over live tables. GitHub deployments build the frontend only and do not apply database migrations.
 
 Tests run the real SQL in PGlite, including name normalization, absent/inactive names, invalid/expired/revoked sessions, admin boundaries, opponent confirmation, duplicate submissions, and Elo recalculation. Admin passwords are handled by Supabase Auth and are never stored in application tables or source code.
