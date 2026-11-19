@@ -36,7 +36,7 @@ Members open the site and enter their roster first and last name. On the first s
 
 Members can record games in which they played. Ratings update immediately when a game is recorded. Either player can dispute a result; disputed games stop affecting Elo until an admin restores or removes them. Only admins can void games or deactivate members. These actions retain the historical records.
 
-First-time PIN setup claims an unclaimed roster name; it does not independently verify identity. After setup, the correct PIN is required. Members can use Change PIN in the header with their current PIN. Admins can use Reset PIN in member management for forgotten PINs. Resetting signs out all member devices; changing a PIN keeps the changing browser signed in and revokes other sessions. Existing name-only sessions must complete PIN setup before recording or disputing games.
+First-time PIN setup claims an unclaimed roster name; it does not independently verify identity. After setup, the correct PIN is required. Members can use Change PIN in their own player profile (opened from the account info in the sidebar) with their current PIN. Admins can use Reset PIN in member management for forgotten PINs. Resetting signs out all member devices; changing a PIN keeps the changing browser signed in and revokes other sessions. Existing name-only sessions must complete PIN setup before recording or disputing games.
 
 ## Checks
 
