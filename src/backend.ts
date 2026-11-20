@@ -22,3 +22,5 @@ export function loadMatchHistory(page:number,token?:string){return rpc('match_hi
 export function loadLadderSummary(token?:string){return rpc('ladder_summary',{session_token:token??null})}
 export function loadPlayerProfile(playerId:string,chartRange:'recent'|'all',token?:string){return rpc('player_profile',{player_id:playerId,session_token:token??null,chart_range:chartRange})}
 export function loadPlayerResults(playerId:string,page:number,token?:string){return rpc('player_results',{player_id:playerId,session_token:token??null,page})}
+
+export function loadDashboard(token?:string){return rpc('member_dashboard',{session_token:token??null})}

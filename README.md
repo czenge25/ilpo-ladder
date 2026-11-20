@@ -57,3 +57,13 @@ The initial schema is included as `20261027153948_initial_schema_baseline.sql`, 
 Production migration IDs have been reconciled with the committed filenames after checking that each recorded SQL hash matches its file. The lazy-profile migration is activated before the frontend deployment. Future migrations should be deployed with the CLI using the committed migration IDs; applying SQL through a tool that generates a new ID requires reconciling its history before GitHub deployment.
 
 Run `npm ci`, `npm test`, and `npm run build`. Tests cover the actual SQL, session/admin boundaries, shared read quotas, true preceding chart ratings, profile result pages, cache reuse/invalidation, failed/stale requests, hidden tabs, and sign-out.
+
+## Dashboard and result corrections
+
+Signed-in players have a Dashboard with rank, Elo, rating change over 24 hours/7 days/30 days, their full current winning or losing streak, their most-played opponent, and their ten latest recorded results. A new player’s rating-change comparison starts at 1,000 and is labeled Since joining. The account card displays overall rank and rounded Elo. Admin accounts also get personal stats when their verified login email is linked to their roster entry. Dashboard reads are scoped to the server-resolved signed-in player and share the normal read budget and revision-based cache.
+
+The member game form has a searchable, keyboard-accessible opponent picker. Typed text must be matched to a roster entry; the winner remains limited to the signed-in player and the chosen opponent.
+
+Admins can select Edit result from a match’s three-dot menu, including disputed or voided matches. They can correct the winner, loser, match date/time, or note. The original submission time and Elo sequence position are preserved; correcting the displayed match date does not reorder the rating sequence. Ratings, records, charts, head-to-head totals and current dashboard statistics are recalculated from the corrected results. Disputed and voided results stay excluded until restored.
+
+Each edit stores its before/after match state in a private RLS-protected table and records an admin audit entry. Historical-rank calculations reconstruct the participants as they were at the requested cutoff, so a later correction does not silently rewrite earlier standings. PIN members cannot edit results, read the edit snapshots, or choose another member’s dashboard identity.
