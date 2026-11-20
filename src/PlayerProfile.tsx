@@ -4,8 +4,8 @@ import {loadPlayerProfile,loadPlayerResults} from './backend';
 import {RatingChart} from './RatingChart';
 import {type ProfileCache} from './profileCache';
 import {usePageVisibility} from './usePageVisibility';
-type Props={player:any;token?:string;scope:string;cache:ProfileCache;canChangePin:boolean;busy:boolean;onChangePin:()=>void;onClose:()=>void};
-export function PlayerProfile({player,token,scope,cache,canChangePin,busy,onChangePin,onClose}:Props){
+type Props={player:any;token?:string;scope:string;cache:ProfileCache;isOwnProfile:boolean;canChangePin:boolean;busy:boolean;onChangePin:()=>void;onClose:()=>void};
+export function PlayerProfile({player,token,scope,cache,isOwnProfile,canChangePin,busy,onChangePin,onClose}:Props){
  const visible=usePageVisibility(),[range,setRange]=useState<'recent'|'all'>('recent'),[page,setPage]=useState(1),[info,setInfo]=useState<{key:string;value:any}|null>(null),[results,setResults]=useState<{key:string;value:any}|null>(null),[error,setError]=useState(''),[resultError,setResultError]=useState(''),[loadingResults,setLoadingResults]=useState(false),[retry,setRetry]=useState(0);
  const profileKey=`${scope}:profile:${player.id}:${range}`,resultKey=`${scope}:results:${player.id}:${page}`;
  const detail=info?.key===profileKey?info.value:null,history=results?.key===resultKey?results.value:null;
@@ -23,6 +23,6 @@ export function PlayerProfile({player,token,scope,cache,canChangePin,busy,onChan
  <h3>Match history</h3>{resultError&&<div className="error" role="alert">{resultError} <button className="textbtn" onClick={()=>setRetry(n=>n+1)}>Retry results</button></div>}
  <div className="profile-results" aria-busy={loadingResults}>{history?history.matches.length?history.matches.map((g:any)=><div className="profile-result" key={g.id}><div><strong>{g.won?'Win':'Loss'} vs. {g.opponent}</strong><p>{new Date(g.played_at??g.confirmed).toLocaleDateString()}{g.note?' · '+g.note:''}</p></div><span className={g.delta>=0?'up':'down'}>{g.delta>0?'+':''}{Math.round(g.delta)}</span><strong>{Math.round(g.rating)}</strong></div>):<p>No recorded games yet.</p>:<p>Loading match history…</p>}</div>
  {history&&history.total>0&&<nav className="history-pagination profile-pagination" aria-label="Player result pages"><button className="secondary" disabled={loadingResults||history.page<=1} onClick={()=>setPage(history.page-1)}>Previous</button><span role="status">Page {history.page} of {Math.max(1,Math.ceil(history.total/10))}<small>{(history.page-1)*10+1}–{Math.min(history.page*10,history.total)} of {history.total} matches</small></span><button className="secondary" disabled={loadingResults||history.page>=Math.ceil(history.total/10)} onClick={()=>setPage(history.page+1)}>Next</button></nav>}
- {detail&&<><h3>Head to head</h3>{detail.head_to_head.length?detail.head_to_head.map((other:any)=><div className="h2h" key={other.id}>{other.name}<strong>{other.wins} – {other.losses}</strong></div>):<p>No head-to-head results yet.</p>}</>}
+ {detail&&!isOwnProfile&&<><h3>Head to head</h3>{detail.head_to_head.length?detail.head_to_head.map((other:any)=><div className="h2h" key={other.id}>{other.name}<strong>{other.wins} – {other.losses}</strong></div>):<p>No head-to-head results yet.</p>}</>}
  </section></div>;
 }
