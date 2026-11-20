@@ -4,7 +4,7 @@ import {doublesDb,roster} from './fixtures/doubles-db.mjs';
 
 test('each ladder exposes its own history, movement, head-to-head and match points',async()=>{
  const db=await doublesDb();try{
-  const [a,b,c,d]=await roster(db);
+  const [a,b,c,d,e]=await roster(db);
   await db.exec("update private.members set joined_at=now()-interval '40 days' where id is not null");
   await db.query("update private.members set pin_hash=extensions.crypt('123456',extensions.gen_salt('bf',4)) where id=$1",[a]);
   await db.query(`insert into private.matches(id,winner,winner_partner,loser,loser_partner,status,created,confirmed,confirmation_order)
@@ -27,11 +27,17 @@ test('each ladder exposes its own history, movement, head-to-head and match poin
    assert.equal(profile.chart.total_games,total);
    assert.equal(profile.results.total,total);
    assert.deepEqual(profile.your_head_to_head,head);
+   if(mode==='doubles'){
+    assert.deepEqual(profile.partners,[{id:b,name:'Bob Example',wins:1,losses:0},{id:d,name:'Drew Example',wins:0,losses:1}]);
+    assert.equal(profile.head_to_head.find(p=>p.id===d).wins,1);
+   }else assert.equal(profile.partners,undefined);
    assert.ok(profile.results.matches.every(m=>Number.isFinite(m.rating)&&Number.isFinite(m.delta)));
    assert.equal(profile.player.rating,profile.chart.history.at(-1).rating);
   }
   const replay=await get('select public.player_results($1,$2,1,$3) as r',[b,login.token,'singles']);
   assert.equal(replay.total,0);
+  const empty=await get('select public.player_profile($1,$2,$3,$4) as r',[e,login.token,'recent','doubles']);
+  assert.deepEqual(empty.partners,[]);
   const dash=await get('select public.member_dashboard($1) as r',[login.token]);
   assert.equal(dash.recent_matches.length,3);
   assert.equal(dash.streak.type,'loss');
