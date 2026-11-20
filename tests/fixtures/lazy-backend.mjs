@@ -1,7 +1,7 @@
 export const configured=true,supabase=null;
 export const calls={summary:0,profiles:[],results:[],history:0,dashboard:0,writes:[]};
 let revision=1,deferred=null,adminMode=false,game=null;
-const players=[{id:'a',name:'Alice Example',active:true,rating:1016,wins:40,losses:23,delta:16},{id:'b',name:'Bob Example',active:true,rating:984,wins:23,losses:40,delta:-16}];
+const players=[{id:'a',name:'Alice Example',active:true,rating:1016,wins:40,losses:23,delta:16},{id:'b',name:'Bob Example',active:true,rating:984,wins:23,losses:40,delta:-16},{id:'c',name:'Casey Example',active:true,rating:1000,wins:0,losses:0,delta:0},{id:'d',name:'Drew Example',active:true,rating:1000,wins:0,losses:0,delta:0}];
 export const readMemberSession=()=>({id:'a',name:'Alice Example',token:'f'.repeat(64)}),clearMemberSession=()=>{},signOutMember=async()=>{};
 export const checkMemberName=async()=>({name:'Alice Example',needs_pin_setup:false}),signInByName=async()=>({id:'a',name:'Alice Example',token:'e'.repeat(64)}),signInAdmin=async()=>{adminMode=true;return {user:{id:'admin'}}},changeMemberPin=async()=>{};
 export function advanceRevision(){revision++}
