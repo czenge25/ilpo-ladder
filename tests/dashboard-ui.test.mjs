@@ -19,6 +19,26 @@ test('account rank, personal dashboard, searchable opponents, and admin editing 
  await click(document.querySelector('[aria-label="Profile rating view"] button'));assert.equal(backend.calls.profiles.at(-1).ladder,'overall');assert.equal(document.getElementById('doubles-partners-heading'),null);
  await click(document.querySelector('[aria-label="Close"]'));await click(button('Overall'));
  const setField=async(name,value)=>act(async()=>{const field=document.querySelector(`[name="${name}"]`);field.value=value;field.dispatchEvent(new Event('change',{bubbles:true}))});
+ await click(button('Record a game'));
+ const memberFormat=(value)=>act(async()=>{const el=document.querySelector('[aria-label="Record game"] select');el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}))});
+ await memberFormat('doubles');
+ const choosePlayer=async(label,query,name)=>{
+  const el=Array.from(document.querySelectorAll('[role="combobox"]')).find(input=>input.labels[0].textContent===label);
+  assert.ok(el);await act(async()=>el.focus());
+  assert.doesNotMatch(document.querySelector('[role="listbox"]').textContent,/Alice Example/);
+  await type(el,query);assert.equal(el.checkValidity(),false);
+  const option=document.querySelector('[role="listbox"] [role="option"]');
+  assert.equal(option.textContent,name);await click(option);assert.equal(el.checkValidity(),true);
+ };
+ assert.equal(document.querySelectorAll('[role="combobox"]').length,3);
+ await choosePlayer('Partner','bo','Bob Example');
+ const firstOpponent=Array.from(document.querySelectorAll('[role="combobox"]')).find(input=>input.labels[0].textContent==='First opponent');
+ await act(async()=>firstOpponent.focus());assert.doesNotMatch(document.querySelector('[role="listbox"]').textContent,/Bob Example/);
+ await choosePlayer('First opponent','ca','Casey Example');await choosePlayer('Second opponent','dr','Drew Example');
+ const selections=new FormData(document.querySelector('[aria-label="Record game"] form'));
+ assert.deepEqual(['partner','opponent_one','opponent_two'].map(name=>selections.get(name)),['b','c','d']);
+ await memberFormat('singles');await memberFormat('doubles');assert.equal(document.querySelector('[name="partner"]').value,'');
+ await click(document.querySelector('[aria-label="Record game"] [aria-label="Close"]'));
  await click(button('Sign out'));await click(button('Admin sign-in'));document.querySelector('[name="email"]').value='admin@example.test';document.querySelector('[name="password"]').value='fixture';await submit();await click(document.querySelector('.recent .match-menu-trigger'));await click(button('Edit result'));assert.ok(document.querySelector('[aria-label="Edit result"]'));assert.equal(document.querySelectorAll('[role="dialog"]').length,1);
  await setField('winner','b');await setField('loser','b');await submit();assert.match(document.querySelector('[aria-label="Edit result"]').textContent,/two different players/);assert.equal(backend.calls.writes.length,1);await setField('loser','a');document.querySelector('[name="played_at"]').value='2026-01-01T18:30';document.querySelector('[name="note"]').value='Corrected result';await submit();assert.equal(backend.calls.writes.length,2);const edit=backend.calls.writes[1];assert.equal(edit.body.action,'edit_result');assert.equal(edit.body.winner,'b');assert.equal(edit.body.loser,'a');assert.equal(edit.body.note,'Corrected result');assert.equal(edit.body.played_at,new Date('2026-01-01T18:30').toISOString());assert.equal(edit.token,undefined);assert.equal(document.querySelector('[aria-label="Edit result"]'),null);assert.match(document.querySelector('.recent').textContent,/Corrected result/);
  await click(button('Record a game'));
