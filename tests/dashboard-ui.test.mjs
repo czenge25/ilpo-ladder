@@ -14,6 +14,8 @@ test('account rank, personal dashboard, searchable opponents, and admin editing 
  await click(button('Leaderboard'));
  await click(button('Doubles'));assert.equal(document.querySelectorAll('tbody tr').length,1);assert.match(document.querySelector('tbody').textContent,/Alice Example.*1,008/);assert.match(document.querySelector('.identity-button').textContent,/1,016 Elo/);
  await click(document.querySelector('tbody tr'));assert.equal(backend.calls.profiles.at(-1).ladder,'doubles');assert.match(document.querySelector('[aria-labelledby="doubles-partners-heading"]').textContent,/Bob Example1 W · 0 L/);
+ const resultPairs=Array.from(document.querySelectorAll('.result-elo-pair')).map(el=>el.textContent);
+ assert.ok(resultPairs.includes('+8 Overall+16 Doubles'));assert.ok(resultPairs.includes('−8 Overall−16 Doubles'));
  await click(document.querySelector('[aria-label="Profile rating view"] button'));assert.equal(backend.calls.profiles.at(-1).ladder,'overall');assert.equal(document.getElementById('doubles-partners-heading'),null);
  await click(document.querySelector('[aria-label="Close"]'));await click(button('Overall'));
  const setField=async(name,value)=>act(async()=>{const field=document.querySelector(`[name="${name}"]`);field.value=value;field.dispatchEvent(new Event('change',{bubbles:true}))});
@@ -28,6 +30,7 @@ test('account rank, personal dashboard, searchable opponents, and admin editing 
  const doubles=backend.calls.writes[2].body;
  assert.deepEqual([doubles.winner,doubles.winner_partner,doubles.loser,doubles.loser_partner],['c','d','a','b']);
  assert.match(document.querySelector('.recent').textContent,/Casey Example & Drew Example vs. Alice Example & Bob Example/);
+ assert.match(document.querySelector('.recent').textContent,/\+8 Overall · \+16 Doubles per winner/);
  await click(document.querySelector('.recent .match-menu-trigger'));await click(button('Edit result'));
  await click(button('Swap winning and losing teams'));await submit();
  const corrected=backend.calls.writes[3].body;

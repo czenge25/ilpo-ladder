@@ -21,7 +21,13 @@ test('each ladder exposes its own history, movement, head-to-head and match poin
   assert.equal(summary.format_baselines.singles.day.find(p=>p.id===a).rating,1016);
   assert.equal(summary.format_baselines.doubles.day.find(p=>p.id===a).rating,1016);
   assert.equal(summary.format_baselines.doubles.week.find(p=>p.id===a).rating,1000);
-  assert.equal(summary.format_recent_matches.doubles[1].delta,16);
+  const doubles=summary.format_recent_matches.doubles[1];
+  assert.equal(doubles.delta,16);
+  const recordedDeltas=m=>[m.overall_delta,m.doubles_delta];
+  assert.equal(doubles.doubles_delta,16);assert.notEqual(doubles.overall_delta,doubles.doubles_delta);
+  assert.deepEqual(recordedDeltas(summary.matches.find(m=>m.id===doubles.id)),recordedDeltas(doubles));
+  const history=await get('select public.match_history($1,1) as r',[login.token]);
+  assert.deepEqual(recordedDeltas(history.matches.find(m=>m.id===doubles.id)),recordedDeltas(doubles));
   for(const [mode,total,head] of [['overall',3,{wins:2,losses:1}],['singles',1,{wins:1,losses:0}],['doubles',2,{wins:1,losses:1}]]){
    const profile=await get('select public.player_profile($1,$2,$3,$4) as r',[c,login.token,'recent',mode]);
    assert.equal(profile.chart.total_games,total);
@@ -30,6 +36,7 @@ test('each ladder exposes its own history, movement, head-to-head and match poin
    if(mode==='doubles'){
     assert.deepEqual(profile.partners,[{id:b,name:'Bob Example',wins:1,losses:0},{id:d,name:'Drew Example',wins:0,losses:1}]);
     assert.equal(profile.head_to_head.find(p=>p.id===d).wins,1);
+    assert.deepEqual(recordedDeltas(profile.results.matches.find(m=>m.id===doubles.id)),recordedDeltas(doubles).map(n=>-n));
    }else assert.equal(profile.partners,undefined);
    assert.ok(profile.results.matches.every(m=>Number.isFinite(m.rating)&&Number.isFinite(m.delta)));
    assert.equal(profile.player.rating,profile.chart.history.at(-1).rating);
@@ -40,6 +47,7 @@ test('each ladder exposes its own history, movement, head-to-head and match poin
   assert.deepEqual(empty.partners,[]);
   const dash=await get('select public.member_dashboard($1) as r',[login.token]);
   assert.equal(dash.recent_matches.length,3);
+  assert.deepEqual(recordedDeltas(dash.recent_matches.find(m=>m.id===doubles.id)),recordedDeltas(doubles));
   assert.equal(dash.streak.type,'loss');
   assert.equal(dash.most_played_opponent.id,c);
  }finally{await db.close()}
