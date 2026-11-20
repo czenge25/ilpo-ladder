@@ -16,17 +16,21 @@ test('account rank, personal dashboard, searchable opponents, and admin editing 
  await click(document.querySelector('tbody tr'));assert.equal(backend.calls.profiles.at(-1).ladder,'doubles');
  await click(document.querySelector('[aria-label="Profile rating view"] button'));assert.equal(backend.calls.profiles.at(-1).ladder,'overall');
  await click(document.querySelector('[aria-label="Close"]'));await click(button('Overall'));
+ const setField=async(name,value)=>act(async()=>{const field=document.querySelector(`[name="${name}"]`);field.value=value;field.dispatchEvent(new Event('change',{bubbles:true}))});
  await click(button('Sign out'));await click(button('Admin sign-in'));document.querySelector('[name="email"]').value='admin@example.test';document.querySelector('[name="password"]').value='fixture';await submit();await click(document.querySelector('.recent .match-menu-trigger'));await click(button('Edit result'));assert.ok(document.querySelector('[aria-label="Edit result"]'));assert.equal(document.querySelectorAll('[role="dialog"]').length,1);
- document.querySelector('[name="winner"]').value='b';document.querySelector('[name="loser"]').value='b';await submit();assert.match(document.querySelector('[aria-label="Edit result"]').textContent,/two different players/);assert.equal(backend.calls.writes.length,1);document.querySelector('[name="loser"]').value='a';document.querySelector('[name="played_at"]').value='2026-01-01T18:30';document.querySelector('[name="note"]').value='Corrected result';await submit();assert.equal(backend.calls.writes.length,2);const edit=backend.calls.writes[1];assert.equal(edit.body.action,'edit_result');assert.equal(edit.body.winner,'b');assert.equal(edit.body.loser,'a');assert.equal(edit.body.note,'Corrected result');assert.equal(edit.body.played_at,new Date('2026-01-01T18:30').toISOString());assert.equal(edit.token,undefined);assert.equal(document.querySelector('[aria-label="Edit result"]'),null);assert.match(document.querySelector('.recent').textContent,/Corrected result/);
+ await setField('winner','b');await setField('loser','b');await submit();assert.match(document.querySelector('[aria-label="Edit result"]').textContent,/two different players/);assert.equal(backend.calls.writes.length,1);await setField('loser','a');document.querySelector('[name="played_at"]').value='2026-01-01T18:30';document.querySelector('[name="note"]').value='Corrected result';await submit();assert.equal(backend.calls.writes.length,2);const edit=backend.calls.writes[1];assert.equal(edit.body.action,'edit_result');assert.equal(edit.body.winner,'b');assert.equal(edit.body.loser,'a');assert.equal(edit.body.note,'Corrected result');assert.equal(edit.body.played_at,new Date('2026-01-01T18:30').toISOString());assert.equal(edit.token,undefined);assert.equal(document.querySelector('[aria-label="Edit result"]'),null);assert.match(document.querySelector('.recent').textContent,/Corrected result/);
  await click(button('Record a game'));
- const setField=(name,value)=>{document.querySelector(`[name="${name}"]`).value=value};
  const format=Array.from(document.querySelectorAll('select')).find(s=>s.options[1]?.value==='doubles');
  await act(async()=>{format.value='doubles';format.dispatchEvent(new Event('change',{bubbles:true}))});
- setField('team_a','a');setField('partner','b');setField('opponent_one','c');setField('opponent_two','b');setField('winning_team','b');
+ await setField('team_a','a');await setField('partner','b');await setField('opponent_one','c');await setField('opponent_two','b');await setField('winning_team','b');
  await submit();assert.equal(backend.calls.writes.length,2);assert.match(document.querySelector('[aria-label="Record game"] .error').textContent,/four different players/);
- setField('opponent_two','d');await submit();
+ await setField('opponent_two','d');await submit();
  const doubles=backend.calls.writes[2].body;
  assert.deepEqual([doubles.winner,doubles.winner_partner,doubles.loser,doubles.loser_partner],['c','d','a','b']);
  assert.match(document.querySelector('.recent').textContent,/Casey Example & Drew Example vs. Alice Example & Bob Example/);
+ await click(document.querySelector('.recent .match-menu-trigger'));await click(button('Edit result'));
+ await click(button('Swap winning and losing teams'));await submit();
+ const corrected=backend.calls.writes[3].body;
+ assert.deepEqual([corrected.winner,corrected.winner_partner,corrected.loser,corrected.loser_partner],['a','b','c','d']);
  }finally{if(root){const {act}=await import('react');await act(async()=>root.unmount())}dom.window.close();for(const [key,value] of saved){if(value)Object.defineProperty(globalThis,key,value);else delete globalThis[key]}await rm(dir,{recursive:true,force:true})}
 });
